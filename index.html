@@ -9,6 +9,7 @@
             --widget-bg: #ffffff;
             --text-color: #333;
             --subtle-text: #888;
+            --accent-color: #bb2232;
             --border-color: #e9e9e9;
             --header-bg: #f5f5f5;
             --date-bg: #f0f0f0;
@@ -26,7 +27,6 @@
             margin: 0 auto;
         }
         
-        /* Monats-Überschrift (z.B. "AUGUST") */
         .month-header {
             background-color: var(--header-bg);
             padding: 8px 20px;
@@ -37,15 +37,13 @@
             letter-spacing: 1px;
             border-bottom: 1px solid var(--border-color);
             border-top: 1px solid var(--border-color);
-            margin-top: -1px; /* Verhindert doppelte Ränder */
+            margin-top: -1px;
         }
 
-        /* Container für ein einzelnes Event */
         .calendar-event {
             border-bottom: 1px solid var(--border-color);
         }
 
-        /* Klickbarer Hauptbereich (sichtbarer Teil) */
         .event-summary {
             display: flex;
             align-items: stretch;
@@ -57,7 +55,6 @@
             background-color: #f9f9f9;
         }
 
-        /* Datums-Kasten links */
         .event-date {
             background-color: var(--date-bg);
             color: var(--text-color);
@@ -73,13 +70,11 @@
             letter-spacing: -1px;
         }
 
-        /* Info-Bereich rechts */
         .event-info {
             flex-grow: 1;
             padding: 20px;
             display: flex;
             align-items: center;
-            /* Wichtig für den farbigen Rand */
             border-left-width: 5px;
             border-left-style: solid;
         }
@@ -89,7 +84,6 @@
             font-weight: 600;
         }
 
-        /* Ausklappbarer Detail-Bereich */
         .event-details {
             max-height: 0;
             overflow: hidden;
@@ -121,6 +115,19 @@
             margin-top: 2px;
         }
 
+        .detail-link a {
+            display: inline-block;
+            background-color: var(--accent-color);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background-color 0.2s ease;
+        }
+        .detail-link a:hover {
+            background-color: #a01f2b;
+        }
         #calendar-status {
             padding: 40px;
             text-align: center;
@@ -139,48 +146,59 @@
     <script src="https://cdn.jsdelivr.net/npm/ical.js@1.5.0/build/ical.min.js"></script>
     <script>
         (function() {
+            // --- HIER IST DIE ANPASSUNG ---
             const config = {
                 icalFileUrl: 'calendar.ics',
-                weeksToShow: 24 // Mehr Wochen, da Listenansicht
+                weeksToShow: 4 // Anzeige auf 4 Wochen reduziert
             };
 
             const listContainer = document.getElementById('calendar-list');
             const statusContainer = document.getElementById('calendar-status');
 
-            // Funktion, um eine Farbe basierend auf der Kategorie zurückzugeben
-            const getCategoryColor = (categories) => {
-                if (!categories || categories.length === 0) return '#cccccc'; // Default Grau
-                const category = categories[0].toLowerCase();
-                // Hier können Sie Ihre Kategorien und Farben definieren
-                switch (category) {
-                    case 'gottesdienst': return '#e74c3c';
-                    case 'jugend':
-                    case 'youth': return '#2ecc71';
-                    case 'familie': return '#3498db';
-                    case 'senioren': return '#9b59b6';
-                    default: return '#cccccc';
+            const getCategoryColor = (categories) => { if (!categories || categories.length === 0) return '#cccccc'; const category = categories[0].toLowerCase(); switch (category) { case 'gottesdienst': return '#e74c3c'; case 'jugend': case 'youth': return '#2ecc71'; case 'familie': return '#3498db'; case 'senioren': return '#9b59b6'; default: return '#cccccc'; } };
+            
+            const processIcalData = (icalData) => {
+                const now = new Date();
+                const endDateLimit = new Date();
+                endDateLimit.setDate(now.getDate() + config.weeksToShow * 7); // Nutzt den neuen Wert
+                const allEvents = [];
+                try {
+                    const jcalData = ICAL.parse(icalData);
+                    const vcalendar = new ICAL.Component(jcalData);
+                    const vevents = vcalendar.getAllSubcomponents('vevent');
+                    vevents.forEach(vevent => {
+                        const event = new ICAL.Event(vevent);
+                        if (event.isRecurring()) {
+                            const iterator = event.iterator(); let next;
+                            while ((next = iterator.next()) && next.toJSDate() < endDateLimit) {
+                                const occ = event.getOccurrenceDetails(next);
+                                if (occ.startDate.toJSDate() >= now) allEvents.push(occ);
+                            }
+                        } else {
+                            if (event.startDate.toJSDate() >= now && event.startDate.toJSDate() < endDateLimit) allEvents.push(event);
+                        }
+                    });
+                    allEvents.sort((a, b) => a.startDate.toJSDate() - b.startDate.toJSDate());
+                    return allEvents;
+                } catch (e) {
+                    console.error("Fehler beim Parsen der iCal-Daten:", e);
+                    statusContainer.textContent = "Fehler: Die Kalenderdaten konnten nicht verarbeitet werden.";
+                    return [];
                 }
             };
-            
-            const processIcalData = (icalData) => { /* ... unverändert ... */ const now = new Date(); const endDateLimit = new Date(); endDateLimit.setDate(now.getDate() + config.weeksToShow * 7); const allEvents = []; try { const jcalData = ICAL.parse(icalData); const vcalendar = new ICAL.Component(jcalData); const vevents = vcalendar.getAllSubcomponents('vevent'); vevents.forEach(vevent => { const event = new ICAL.Event(vevent); if (event.isRecurring()) { const iterator = event.iterator(); let next; while ((next = iterator.next()) && next.toJSDate() < endDateLimit) { const occ = event.getOccurrenceDetails(next); if (occ.startDate.toJSDate() >= now) allEvents.push(occ); } } else { if (event.startDate.toJSDate() >= now && event.startDate.toJSDate() < endDateLimit) allEvents.push(event); } }); allEvents.sort((a, b) => a.startDate.toJSDate() - b.startDate.toJSDate()); return allEvents; } catch (e) { console.error("Fehler:", e); statusContainer.textContent = "Fehler: Die Kalenderdaten konnten nicht verarbeitet werden."; return []; } };
 
             const renderCalendar = (events) => {
                 listContainer.innerHTML = '';
                 statusContainer.style.display = 'none';
-
                 if (events.length === 0) {
                     statusContainer.textContent = `Keine anstehenden Termine in den nächsten ${config.weeksToShow} Wochen gefunden.`;
                     statusContainer.style.display = 'block';
                     return;
                 }
-
                 let currentMonth = null;
-
                 events.forEach(event => {
                     const startDate = event.startDate.toJSDate();
                     const eventMonth = startDate.toLocaleString('de-DE', { month: 'long', year: 'numeric' });
-
-                    // Monats-Überschrift einfügen, wenn der Monat wechselt
                     if (eventMonth !== currentMonth) {
                         const monthHeader = document.createElement('div');
                         monthHeader.className = 'month-header';
@@ -188,58 +206,39 @@
                         listContainer.appendChild(monthHeader);
                         currentMonth = eventMonth;
                     }
-
                     const eventWrapper = document.createElement('div');
                     eventWrapper.className = 'calendar-event';
-                    
                     const item = event.item || event;
                     const endDate = event.endDate.toJSDate();
                     const color = getCategoryColor(item.categories);
-                    
                     let detailsHTML = '';
                     if (!event.startDate.isDate) {
-                         const options = { hour: '2-digit', minute: '2-digit' };
-                         detailsHTML += `<div class="detail-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg><div>${startDate.toLocaleTimeString('de-DE', options)} - ${endDate.toLocaleTimeString('de-DE', options)} Uhr</div></div>`;
+                        const options = { hour: '2-digit', minute: '2-digit' };
+                        detailsHTML += `<div class="detail-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg><div>${startDate.toLocaleTimeString('de-DE', options)} - ${endDate.toLocaleTimeString('de-DE', options)} Uhr</div></div>`;
                     }
                     if (item.location) {
-                         detailsHTML += `<div class="detail-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5-2.5z"/></svg><div>${item.location}</div></div>`;
+                        detailsHTML += `<div class="detail-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5-2.5z"/></svg><div>${item.location}</div></div>`;
                     }
                     if (item.description) {
                         detailsHTML += `<div class="detail-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM4 6h16v2H4V6zm16 12H4V10h16v8z"/></svg><div>${item.description.replace(/\n/g, '<br>')}</div></div>`;
                     }
-
+                    if (item.url) {
+                        detailsHTML += `<div class="detail-item detail-link"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg><a href="${item.url}" target="_blank" rel="noopener noreferrer">Mehr Infos / Anmeldung</a></div>`;
+                    }
                     eventWrapper.innerHTML = `
                         <div class="event-summary">
                             <div class="event-date">${startDate.getDate()}</div>
-                            <div class="event-info" style="border-left-color: ${color};">
-                                <span class="event-title">${item.summary}</span>
-                            </div>
+                            <div class="event-info" style="border-left-color: ${color};"><span class="event-title">${item.summary}</span></div>
                         </div>
-                        <div class="event-details">${detailsHTML}</div>
-                    `;
+                        <div class="event-details">${detailsHTML || '<div class="detail-item">Keine weiteren Informationen vorhanden.</div>'}</div>`;
                     listContainer.appendChild(eventWrapper);
                 });
-                
                 addEventListeners();
             };
 
-            const addEventListeners = () => {
-                listContainer.querySelectorAll('.event-summary').forEach(summary => {
-                    summary.addEventListener('click', () => {
-                        const eventWrapper = summary.closest('.calendar-event');
-                        // Schließe alle anderen offenen Events
-                        listContainer.querySelectorAll('.calendar-event.active').forEach(activeEvent => {
-                            if (activeEvent !== eventWrapper) {
-                                activeEvent.classList.remove('active');
-                            }
-                        });
-                        // Toggle das geklickte Event
-                        eventWrapper.classList.toggle('active');
-                    });
-                });
-            };
+            const addEventListeners = () => { listContainer.querySelectorAll('.event-summary').forEach(summary => { summary.addEventListener('click', () => { const eventWrapper = summary.closest('.calendar-event'); listContainer.querySelectorAll('.calendar-event.active').forEach(activeEvent => { if (activeEvent !== eventWrapper) { activeEvent.classList.remove('active'); } }); eventWrapper.classList.toggle('active'); }); }); };
             
-            async function initCalendar() { /* ... unverändert ... */ statusContainer.textContent = 'Lade Termine...'; statusContainer.style.display = 'block'; try { const response = await fetch(config.icalFileUrl, { cache: 'no-store' }); if (!response.ok) throw new Error(`Kalenderdatei nicht gefunden: ${response.status}`); const icalData = await response.text(); const events = processIcalData(icalData); renderCalendar(events); } catch (error) { console.error('Fehler:', error); statusContainer.textContent = 'Fehler: Termine konnten nicht geladen werden.'; } }
+            async function initCalendar() { statusContainer.textContent = 'Lade Termine...'; statusContainer.style.display = 'block'; try { const response = await fetch(config.icalFileUrl, { cache: 'no-store' }); if (!response.ok) throw new Error(`Kalenderdatei nicht gefunden: ${response.status}`); const icalData = await response.text(); const events = processIcalData(icalData); renderCalendar(events); } catch (error) { console.error('Fehler:', error); statusContainer.textContent = 'Fehler: Termine konnten nicht geladen werden.'; } }
             initCalendar();
         })();
     </script>
