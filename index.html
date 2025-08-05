@@ -136,7 +136,7 @@
             fill: #888;
         }
 
-        /* Overlay für die Beschreibung (erscheint bei Hover) */
+        /* --- KORRIGIERTES OVERLAY --- */
         .tile-overlay {
             position: absolute;
             top: 0;
@@ -146,18 +146,18 @@
             background: linear-gradient(135deg, rgba(187, 34, 50, 0.95), rgba(187, 34, 50, 0.85));
             color: white;
             padding: 25px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex;               /* Macht das Element zu einem Flex-Container */
+            justify-content: center;     /* Zentriert den Inhalt horizontal */
+            align-items: center;         /* Zentriert den Inhalt vertikal (DIE KORREKTUR) */
             text-align: center;
             font-size: 16px;
             line-height: 1.5;
-            transform: translateY(100%); /* Startet außerhalb der Karte (unten) */
+            transform: translateY(100%);
             transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
 
         .calendar-tile:hover .tile-overlay {
-            transform: translateY(0); /* Gleitet bei Hover nach oben in die Ansicht */
+            transform: translateY(0);
         }
 
         /* Lade- und Fehlerstatus */
@@ -197,7 +197,6 @@
             const gridContainer = document.getElementById('calendar-grid');
             const statusContainer = document.getElementById('calendar-status');
 
-            // HILFSFUNKTIONEN FÜR DATUMSFORMATIERUNG
             const formatDateHeader = (date) => {
                 const day = date.toLocaleDateString('de-DE', { weekday: 'long' });
                 const fullDate = date.toLocaleDateString('de-DE', { day: '2-digit', month: 'long' });
@@ -254,13 +253,13 @@
                     const tile = document.createElement('div');
                     tile.className = 'calendar-tile';
 
-                    const item = event.item || event; // Für wiederkehrende und einmalige Events
+                    const item = event.item || event;
                     const startDate = event.startDate.toJSDate();
                     const endDate = event.endDate.toJSDate();
 
-                    const timeHTML = `<div class="tile-time"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" fill-opacity=".54"/></svg><span>${formatTime(startDate, endDate, event.startDate.isDate)}</span></div>`;
-                    const locationHTML = item.location ? `<div class="tile-location"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5-2.5z"/></svg><span>${item.location}</span></div>` : '';
-                    const overlayHTML = item.description ? `<div class="tile-overlay">${item.description.replace(/\n/g, '<br>')}</div>` : '';
+                    const timeHTML = `<div class="tile-time"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill-rule="evenodd" clip-rule="evenodd" fill="#666"><path d="M12 0c6.623 0 12 5.377 12 12s-5.377 12-12 12-12-5.377-12-12 5.377-12 12-12zm0 1c6.071 0 11 4.929 11 11s-4.929 11-11 11-11-4.929-11-11 4.929-11 11-11zm0 11h-6v1h6v6h1v-6h6v-1h-6v-6h-1v6z"/></svg><span>${formatTime(startDate, endDate, event.startDate.isDate)}</span></div>`;
+                    const locationHTML = item.location ? `<div class="tile-location"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#666"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5-2.5z"/></svg><span>${item.location}</span></div>` : '';
+                    const overlayHTML = item.description ? `<div class="tile-overlay"><div>${item.description.replace(/\n/g, '<br>')}</div></div>` : '';
 
                     tile.innerHTML = `
                         <div class="tile-header">${formatDateHeader(startDate)}</div>
@@ -279,7 +278,6 @@
                 statusContainer.textContent = 'Lade Termine...';
                 statusContainer.style.display = 'block';
                 try {
-                    // Caching im Browser deaktivieren, damit immer die neueste Version von GitHub geladen wird
                     const response = await fetch(config.icalFileUrl, { cache: 'no-store' });
                     if (!response.ok) throw new Error(`Kalenderdatei nicht gefunden: ${response.status}`);
                     const icalData = await response.text();
