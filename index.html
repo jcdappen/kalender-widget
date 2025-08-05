@@ -5,184 +5,163 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>iCal Kalender-Widget</title>
     <style>
-        /* --- Grundlegende Styles & Typografie aus dem Vorbild --- */
         :root {
-            --widget-bg: #f8f9fa;
-            --card-bg: #ffffff;
+            --widget-bg: #ffffff; /* Weißer Hintergrund wie im Vorbild */
             --text-color: #333;
-            --accent-color: #bb2232; /* Das Rot aus dem Vorbild */
-            --shadow-color: rgba(0, 0, 0, 0.15);
-            --border-radius: 15px;
+            --subtle-text: #666;
+            --accent-color: #bb2232; /* Ihr Rot als Akzentfarbe */
+            --border-color: #e5e5e5;
+            --border-radius: 8px;
         }
 
         #ical-widget-container, body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, 'Helvetica Neue', Helvetica, Arial, sans-serif;
             background-color: var(--widget-bg);
             color: var(--text-color);
-            line-height: 1.6;
+            line-height: 1.5;
             margin: 0;
-            padding: 0;
         }
 
         #ical-calendar-widget {
-            max-width: 1200px;
+            max-width: 900px;
             margin: 0 auto;
-            padding: 40px 20px;
+            padding: 40px 15px;
         }
         
-        /* --- Titel-Styling aus dem Vorbild --- */
         .widget-header {
             text-align: center;
-            margin-bottom: 60px;
+            margin-bottom: 50px;
         }
 
         .widget-header h1 {
-            font-size: 42px;
+            font-size: 36px;
             font-weight: 700;
-            color: var(--accent-color);
-            margin: 0 0 20px 0;
-            position: relative;
+            color: #222;
         }
 
-        /* Unterstrich-Element unter dem Titel */
-        .widget-header h1::after {
-            content: '';
-            display: block;
-            width: 80px;
-            height: 4px;
-            background: var(--accent-color);
-            margin: 20px auto 0;
-            border-radius: 2px;
+        /* --- Neues Listen-Layout --- */
+        #calendar-list {
+            border-top: 1px solid var(--border-color);
         }
 
-        /* --- Grid-Layout für die Karten --- */
-        #calendar-grid {
-            display: grid;
-            justify-content: center;
-            gap: 30px;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 320px));
+        .calendar-event {
+            border-bottom: 1px solid var(--border-color);
         }
 
-        /* --- Neues Karten-Design ohne Bilder --- */
-        .calendar-tile {
-            position: relative;
-            height: 320px;
-            background-color: var(--card-bg);
-            border-radius: var(--border-radius);
-            box-shadow: 0 10px 30px var(--shadow-color);
-            overflow: hidden;
+        /* Der klickbare Hauptbereich jedes Events */
+        .event-main {
             display: flex;
-            flex-direction: column;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            align-items: stretch;
+            cursor: pointer;
+            padding: 20px 10px;
+            transition: background-color 0.2s ease;
         }
 
-        .calendar-tile:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        .calendar-event.active .event-main,
+        .event-main:hover {
+            background-color: #f9f9f9;
         }
 
-        /* Header der Karte: Ersetzt den früheren Bildbereich */
-        .tile-header {
+        /* Datumsblock links */
+        .event-date {
             background-color: var(--accent-color);
             color: white;
-            padding: 20px;
+            border-radius: var(--border-radius);
             text-align: center;
-            flex-shrink: 0;
-        }
-
-        .tile-day {
-            font-size: 16px;
-            font-weight: 600;
-            display: block;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .tile-date {
-            font-size: 28px;
-            font-weight: 700;
-            display: block;
-            line-height: 1.2;
-        }
-
-        /* Body der Karte: Hauptinformationen */
-        .tile-body {
-            padding: 20px;
+            padding: 10px;
+            width: 70px;
+            height: 70px;
             display: flex;
             flex-direction: column;
-            flex-grow: 1;
-        }
-
-        .tile-title {
-            font-size: 22px;
+            justify-content: center;
+            flex-shrink: 0;
             font-weight: 700;
-            color: #000;
-            margin: 0 0 10px 0;
         }
 
-        .tile-time, .tile-location {
+        .event-month {
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        .event-day {
+            font-size: 28px;
+            line-height: 1.1;
+        }
+
+        /* Info-Block rechts */
+        .event-info {
+            padding-left: 20px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .event-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #222;
+            margin: 0 0 5px 0;
+        }
+
+        .event-meta {
             font-size: 15px;
-            color: #666;
+            color: var(--subtle-text);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        /* Plus/Minus Icon zum Ausklappen */
+        .event-toggle-icon {
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
+            justify-content: center;
+            padding-left: 15px;
         }
 
-        .tile-time svg, .tile-location svg {
-            width: 16px;
-            height: 16px;
-            flex-shrink: 0;
-            fill: #888;
-        }
-
-        /* --- KORRIGIERTES OVERLAY --- */
-        .tile-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(187, 34, 50, 0.95), rgba(187, 34, 50, 0.85));
-            color: white;
-            padding: 25px;
-            display: flex;               /* Macht das Element zu einem Flex-Container */
-            justify-content: center;     /* Zentriert den Inhalt horizontal */
-            align-items: center;         /* Zentriert den Inhalt vertikal (DIE KORREKTUR) */
-            text-align: center;
-            font-size: 16px;
-            line-height: 1.5;
-            transform: translateY(100%);
-            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
-
-        .calendar-tile:hover .tile-overlay {
-            transform: translateY(0);
-        }
-
-        /* Lade- und Fehlerstatus */
-        #calendar-status {
-            text-align: center;
-            font-size: 18px;
-            color: #666;
-            padding: 40px 20px;
+        .event-toggle-icon svg {
+            width: 24px;
+            height: 24px;
+            transition: transform 0.3s ease;
         }
         
-        /* Responsive Anpassungen */
-        @media (max-width: 768px) {
-            .widget-header h1 { font-size: 32px; }
-            #calendar-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+        .calendar-event.active .event-toggle-icon svg {
+            transform: rotate(45deg);
         }
+
+        /* Der ausklappbare Beschreibungs-Bereich */
+        .event-description {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out, padding 0.4s ease-out;
+            padding: 0 20px;
+            font-size: 16px;
+            color: var(--text-color);
+            line-height: 1.7;
+        }
+
+        .calendar-event.active .event-description {
+            max-height: 500px; /* Großer Wert, um Inhalt zu erlauben */
+            padding: 10px 20px 30px 20px;
+        }
+
+        #calendar-status {
+            text-align: center;
+            padding: 40px;
+            color: var(--subtle-text);
+        }
+
     </style>
 </head>
 <body>
     <div id="ical-widget-container">
         <div id="ical-calendar-widget">
             <div class="widget-header">
-                <h1>Anstehende Termine</h1>
+                <h1>Kalender</h1>
             </div>
             <div id="calendar-status"></div>
-            <div id="calendar-grid"></div>
+            <div id="calendar-list"></div>
         </div>
     </div>
     
@@ -191,25 +170,32 @@
         (function() {
             const config = {
                 icalFileUrl: 'calendar.ics',
-                weeksToShow: 4
+                weeksToShow: 12 // Zeigen wir mehr Wochen an, da das Listenlayout mehr Platz hat
             };
 
-            const gridContainer = document.getElementById('calendar-grid');
+            const listContainer = document.getElementById('calendar-list');
             const statusContainer = document.getElementById('calendar-status');
 
-            const formatDateHeader = (date) => {
-                const day = date.toLocaleDateString('de-DE', { weekday: 'long' });
-                const fullDate = date.toLocaleDateString('de-DE', { day: '2-digit', month: 'long' });
-                return `<span class="tile-day">${day}</span><span class="tile-date">${fullDate}</span>`;
+            const formatDateBlock = (date) => {
+                const month = date.toLocaleDateString('de-DE', { month: 'short' }).toUpperCase();
+                const day = date.getDate();
+                return `<div class="event-date"><span class="event-month">${month}</span><span class="event-day">${day}</span></div>`;
             };
 
-            const formatTime = (start, end, isAllDay) => {
-                if (isAllDay) return 'Ganztägig';
-                const options = { hour: '2-digit', minute: '2-digit', hour12: false };
-                return `${start.toLocaleTimeString('de-DE', options)} – ${end.toLocaleTimeString('de-DE', options)} Uhr`;
+            const formatMeta = (start, end, isAllDay, location) => {
+                let meta = '';
+                if (!isAllDay) {
+                    const options = { hour: '2-digit', minute: '2-digit' };
+                    meta += `<span>${start.toLocaleTimeString('de-DE', options)} Uhr</span>`;
+                }
+                if (location) {
+                    meta += `<span>${location}</span>`;
+                }
+                return meta;
             };
 
             const processIcalData = (icalData) => {
+                // ... (Diese Funktion bleibt unverändert) ...
                 const now = new Date();
                 const endDateLimit = new Date();
                 endDateLimit.setDate(now.getDate() + config.weeksToShow * 7);
@@ -240,7 +226,7 @@
             };
 
             const renderCalendar = (events) => {
-                gridContainer.innerHTML = '';
+                listContainer.innerHTML = '';
                 statusContainer.style.display = 'none';
 
                 if (events.length === 0) {
@@ -250,31 +236,53 @@
                 }
 
                 events.forEach(event => {
-                    const tile = document.createElement('div');
-                    tile.className = 'calendar-tile';
+                    const eventWrapper = document.createElement('div');
+                    eventWrapper.className = 'calendar-event';
 
                     const item = event.item || event;
                     const startDate = event.startDate.toJSDate();
                     const endDate = event.endDate.toJSDate();
 
-                    const timeHTML = `<div class="tile-time"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill-rule="evenodd" clip-rule="evenodd" fill="#666"><path d="M12 0c6.623 0 12 5.377 12 12s-5.377 12-12 12-12-5.377-12-12 5.377-12 12-12zm0 1c6.071 0 11 4.929 11 11s-4.929 11-11 11-11-4.929-11-11 4.929-11 11-11zm0 11h-6v1h6v6h1v-6h6v-1h-6v-6h-1v6z"/></svg><span>${formatTime(startDate, endDate, event.startDate.isDate)}</span></div>`;
-                    const locationHTML = item.location ? `<div class="tile-location"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#666"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5-2.5z"/></svg><span>${item.location}</span></div>` : '';
-                    const overlayHTML = item.description ? `<div class="tile-overlay"><div>${item.description.replace(/\n/g, '<br>')}</div></div>` : '';
+                    const descriptionHTML = item.description ? `<div class="event-description"><p>${item.description.replace(/\n/g, '<br>')}</p></div>` : '<div class="event-description"></div>';
 
-                    tile.innerHTML = `
-                        <div class="tile-header">${formatDateHeader(startDate)}</div>
-                        <div class="tile-body">
-                            <h2 class="tile-title">${item.summary}</h2>
-                            ${timeHTML}
-                            ${locationHTML}
+                    eventWrapper.innerHTML = `
+                        <div class="event-main">
+                            ${formatDateBlock(startDate)}
+                            <div class="event-info">
+                                <h2 class="event-title">${item.summary}</h2>
+                                <div class="event-meta">${formatMeta(startDate, endDate, event.startDate.isDate, item.location)}</div>
+                            </div>
+                            <div class="event-toggle-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#666"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+                            </div>
                         </div>
-                        ${overlayHTML}
+                        ${descriptionHTML}
                     `;
-                    gridContainer.appendChild(tile);
+                    listContainer.appendChild(eventWrapper);
+                });
+                
+                // Nach dem Rendern die Event-Listener hinzufügen
+                addEventListeners();
+            };
+
+            // NEUE FUNKTION: Fügt die Klick-Listener hinzu
+            const addEventListeners = () => {
+                const eventMains = listContainer.querySelectorAll('.event-main');
+                eventMains.forEach(main => {
+                    main.addEventListener('click', () => {
+                        const eventWrapper = main.parentElement;
+                        const description = eventWrapper.querySelector('.event-description');
+
+                        // Nur ausklappen, wenn es eine Beschreibung gibt
+                        if (description && description.textContent.trim() !== '') {
+                            eventWrapper.classList.toggle('active');
+                        }
+                    });
                 });
             };
             
             async function initCalendar() {
+                // ... (Diese Funktion bleibt unverändert) ...
                 statusContainer.textContent = 'Lade Termine...';
                 statusContainer.style.display = 'block';
                 try {
