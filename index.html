@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iCal Kalender-Widget</title>
+    <style>
+        :root { /* ... All die CSS-Styles von der vorherigen Antwort ... */ }
+        #ical-widget-container { width: 100%; box-sizing: border-box; }
+        #ical-calendar-widget { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f8f9fa; color: #212529; padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .widget-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .widget-header h1 { font-size: 1.8em; color: #000; margin: 0; }
+        #calendar-status { padding: 20px; text-align: center; font-size: 1.1em; color: #6c757d; }
+        #calendar-grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+        .calendar-tile { background-color: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 20px; display: flex; flex-direction: column; gap: 12px; border-left: 5px solid #007bff; }
+        .tile-title { font-size: 1.3em; font-weight: 600; color: #000; margin: 0; }
+        .tile-datetime, .tile-location { font-size: 0.95em; color: #6c757d; display: flex; align-items: center; gap: 8px; }
+        .tile-datetime svg, .tile-location svg { width: 16px; height: 16px; flex-shrink: 0; }
+        .tile-description { font-size: 0.9em; line-height: 1.5; max-height: 120px; overflow-y: auto; border-top: 1px solid #eee; padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <div id="ical-widget-container">
+        <div id="ical-calendar-widget">
+            <div class="widget-header"><h1>Anstehende Termine</h1></div>
+            <div id="calendar-status"></div>
+            <div id="calendar-grid"></div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/ical.js@1.5.0/build/ical.min.js"></script>
+    <script>
+        (function() {
+            // Konfiguration zeigt jetzt auf die lokale Datei, die von der GitHub Action erstellt wird.
+            const config = {
+                icalFileUrl: 'calendar.ics', // Relative URL zur Kalenderdatei
+                weeksToShow: 4
+            };
+
+            const widget = document.querySelector('#ical-calendar-widget');
+            const gridContainer = widget.querySelector('#calendar-grid');
+            const statusContainer = widget.querySelector('#calendar-status');
+
+            // Der Rest des JavaScripts ist fast identisch, lädt aber aus einer direkten Datei
+            // ... (Der gesamte JavaScript-Code von der vorherigen Antwort, aber ohne Proxy-Logik und Caching, da die Datei immer aktuell ist)
+
+            function formatDateTime(startTime, endTime) { /* ... (unverändert) ... */ const optionsDate = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }; const optionsTime = { hour: '2-digit', minute: '2-digit', hour12: false }; const startDate = startTime.toJSDate(); const endDate = endTime.toJSDate(); let dateString = startDate.toLocaleDateString('de-DE', optionsDate); if (startTime.isDate) return dateString; let timeString = `${startDate.toLocaleTimeString('de-DE', optionsTime)} – ${endDate.toLocaleTimeString('de-DE', optionsTime)} Uhr`; return `${dateString} <br> ${timeString}`; }
+            function processIcalData(icalData) { /* ... (unverändert) ... */ const now = new Date(); const endDateLimit = new Date(); endDateLimit.setDate(now.getDate() + config.weeksToShow * 7); const allEvents = []; try { const jcalData = ICAL.parse(icalData); const vcalendar = new ICAL.Component(jcalData); const vevents = vcalendar.getAllSubcomponents('vevent'); vevents.forEach(vevent => { const event = new ICAL.Event(vevent); if (event.isRecurring()) { const iterator = event.iterator(); let next; while ((next = iterator.next()) && next.toJSDate() < endDateLimit) { const occ = event.getOccurrenceDetails(next); if (occ.startDate.toJSDate() >= now) allEvents.push({ summary: occ.item.summary, startDate: occ.startDate, endDate: occ.endDate, location: occ.item.location, description: occ.item.description }); } } else { const startDate = event.startDate.toJSDate(); if (startDate >= now && startDate < endDateLimit) allEvents.push({ summary: event.summary, startDate: event.startDate, endDate: event.endDate, location: event.location, description: event.description }); } }); allEvents.sort((a, b) => a.startDate.toJSDate() - b.startDate.toJSDate()); return allEvents; } catch (e) { console.error("Fehler beim Parsen der iCal-Daten:", e); statusContainer.textContent = "Fehler: Die Kalenderdaten konnten nicht verarbeitet werden."; return []; } }
+            function renderCalendar(events) { /* ... (unverändert) ... */ gridContainer.innerHTML = ''; statusContainer.textContent = events.length === 0 ? `Keine Termine in den nächsten ${config.weeksToShow} Wochen.` : ''; events.forEach(event => { const tile = document.createElement('div'); tile.className = 'calendar-tile'; const locationHTML = event.location ? `<div class="tile-location"><svg ...><span>${event.location}</span></div>` : ''; const descriptionHTML = event.description ? `<div class="tile-description"><p>${event.description.replace(/\n/g, '<br>')}</p></div>` : ''; tile.innerHTML = `<h2 class="tile-title">${event.summary}</h2><div class="tile-datetime"><svg ...><span>${formatDateTime(event.startDate, event.endDate)}</span></div>${locationHTML}${descriptionHTML}`; gridContainer.appendChild(tile); }); }
+
+            async function initCalendar() {
+                statusContainer.textContent = 'Lade Termine...';
+                try {
+                    const response = await fetch(config.icalFileUrl);
+                    if (!response.ok) throw new Error(`Kalenderdatei nicht gefunden: ${response.status}`);
+                    const icalData = await response.text();
+                    const events = processIcalData(icalData);
+                    renderCalendar(events);
+                } catch (error) {
+                    console.error('Fehler:', error);
+                    statusContainer.textContent = 'Fehler: Termine konnten nicht geladen werden. Warten auf die erste automatische Aktualisierung...';
+                }
+            }
+            initCalendar();
+        })();
+    </script>
+</body>
+</html>
