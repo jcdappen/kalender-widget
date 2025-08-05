@@ -22,9 +22,10 @@
             margin: 0;
         }
 
+        /* --- HIER IST DIE ANPASSUNG --- */
+        /* max-width und margin wurden entfernt, damit der Container die volle Breite einnimmt */
         #ical-calendar-widget {
-            max-width: 900px;
-            margin: 0 auto;
+            /* Kein max-width, kein margin: auto mehr */
         }
         
         .month-header {
@@ -49,6 +50,7 @@
             align-items: stretch;
             cursor: pointer;
             transition: background-color 0.2s ease;
+            padding: 0 15px; /* Ein kleiner Innenabstand für mobile Geräte */
         }
 
         .event-summary:hover {
@@ -88,13 +90,13 @@
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.4s ease-out, padding 0.4s ease-out, border-top 0.4s ease-out;
-            padding: 0 20px;
+            padding: 0 30px; /* Passender Innenabstand */
             border-top: 0px solid var(--border-color);
         }
 
         .calendar-event.active .event-details {
             max-height: 500px;
-            padding: 20px 20px 25px 20px;
+            padding: 20px 30px 25px 30px;
             border-top: 1px solid var(--border-color);
         }
 
@@ -146,10 +148,9 @@
     <script src="https://cdn.jsdelivr.net/npm/ical.js@1.5.0/build/ical.min.js"></script>
     <script>
         (function() {
-            // --- HIER IST DIE ANPASSUNG ---
             const config = {
                 icalFileUrl: 'calendar.ics',
-                weeksToShow: 4 // Anzeige auf 4 Wochen reduziert
+                weeksToShow: 4
             };
 
             const listContainer = document.getElementById('calendar-list');
@@ -157,35 +158,7 @@
 
             const getCategoryColor = (categories) => { if (!categories || categories.length === 0) return '#cccccc'; const category = categories[0].toLowerCase(); switch (category) { case 'gottesdienst': return '#e74c3c'; case 'jugend': case 'youth': return '#2ecc71'; case 'familie': return '#3498db'; case 'senioren': return '#9b59b6'; default: return '#cccccc'; } };
             
-            const processIcalData = (icalData) => {
-                const now = new Date();
-                const endDateLimit = new Date();
-                endDateLimit.setDate(now.getDate() + config.weeksToShow * 7); // Nutzt den neuen Wert
-                const allEvents = [];
-                try {
-                    const jcalData = ICAL.parse(icalData);
-                    const vcalendar = new ICAL.Component(jcalData);
-                    const vevents = vcalendar.getAllSubcomponents('vevent');
-                    vevents.forEach(vevent => {
-                        const event = new ICAL.Event(vevent);
-                        if (event.isRecurring()) {
-                            const iterator = event.iterator(); let next;
-                            while ((next = iterator.next()) && next.toJSDate() < endDateLimit) {
-                                const occ = event.getOccurrenceDetails(next);
-                                if (occ.startDate.toJSDate() >= now) allEvents.push(occ);
-                            }
-                        } else {
-                            if (event.startDate.toJSDate() >= now && event.startDate.toJSDate() < endDateLimit) allEvents.push(event);
-                        }
-                    });
-                    allEvents.sort((a, b) => a.startDate.toJSDate() - b.startDate.toJSDate());
-                    return allEvents;
-                } catch (e) {
-                    console.error("Fehler beim Parsen der iCal-Daten:", e);
-                    statusContainer.textContent = "Fehler: Die Kalenderdaten konnten nicht verarbeitet werden.";
-                    return [];
-                }
-            };
+            const processIcalData = (icalData) => { const now = new Date(); const endDateLimit = new Date(); endDateLimit.setDate(now.getDate() + config.weeksToShow * 7); const allEvents = []; try { const jcalData = ICAL.parse(icalData); const vcalendar = new ICAL.Component(jcalData); const vevents = vcalendar.getAllSubcomponents('vevent'); vevents.forEach(vevent => { const event = new ICAL.Event(vevent); if (event.isRecurring()) { const iterator = event.iterator(); let next; while ((next = iterator.next()) && next.toJSDate() < endDateLimit) { const occ = event.getOccurrenceDetails(next); if (occ.startDate.toJSDate() >= now) allEvents.push(occ); } } else { if (event.startDate.toJSDate() >= now && event.startDate.toJSDate() < endDateLimit) allEvents.push(event); } }); allEvents.sort((a, b) => a.startDate.toJSDate() - b.startDate.toJSDate()); return allEvents; } catch (e) { console.error("Fehler beim Parsen der iCal-Daten:", e); statusContainer.textContent = "Fehler: Die Kalenderdaten konnten nicht verarbeitet werden."; return []; } };
 
             const renderCalendar = (events) => {
                 listContainer.innerHTML = '';
