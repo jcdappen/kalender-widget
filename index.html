@@ -1,3 +1,4 @@
+<!-- START: ALLES AB HIER KOPIEREN -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -5,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>iCal Kalender-Widget</title>
     <style>
-        /* --- NEU: Universeller Fix für das Box-Modell --- */
+        /* Universeller Fix für das Box-Modell, um horizontales Scrollen zu verhindern */
         *, *::before, *::after {
             box-sizing: border-box;
         }
@@ -20,15 +21,16 @@
             --date-bg: #f0f0f0;
         }
 
-        #ical-widget-container, body {
+        body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, 'Helvetica Neue', Helvetica, Arial, sans-serif;
             background-color: var(--widget-bg);
             color: var(--text-color);
             margin: 0;
+            padding: 0;
         }
 
         #ical-calendar-widget {
-            /* Leerer Container, der sich anpasst */
+            /* Dieser Hauptcontainer ist jetzt leer und dient nur als Hülle */
         }
         
         .month-header {
@@ -53,7 +55,7 @@
             align-items: stretch;
             cursor: pointer;
             transition: background-color 0.2s ease;
-            padding-left: 15px; /* Nur noch links, da rechts der Abstand vom Info-Bereich kommt */
+            padding-left: 15px;
         }
 
         .event-summary:hover {
@@ -93,7 +95,7 @@
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.4s ease-out, padding 0.4s ease-out, border-top 0.4s ease-out;
-            padding: 0 15px; /* Angepasster Innenabstand */
+            padding: 0 15px;
             border-top: 0px solid var(--border-color);
         }
 
@@ -220,3 +222,4 @@
     </script>
 </body>
 </html>
+<!-- ENDE: ALLES BIS HIER KOPIEREN -->
