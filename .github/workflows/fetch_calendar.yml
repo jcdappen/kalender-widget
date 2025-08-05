@@ -1,34 +1,29 @@
-# Name des Workflows, der in der "Actions"-Übersicht angezeigt wird
+# Name des Workflows
 name: Fetch iCal Feed
 
 # Trigger: Wann soll dieser Workflow laufen?
 on:
-  # Erlaubt manuelles Starten über den "Actions"-Tab
   workflow_dispatch:
-  # Ein Zeitplan (CRON-Job)
   schedule:
-    # Läuft alle 2 Stunden (zur Minute 0 jeder 2. Stunde)
     - cron: '0 */2 * * *'
+
+# *** HIER IST DIE WICHTIGE ÄNDERUNG ***
+# Gibt dem Workflow die Erlaubnis, Dateien ins Repository zu schreiben.
+permissions:
+  contents: write
 
 # Die Jobs, die ausgeführt werden sollen
 jobs:
   fetch-and-commit:
-    # Nutzt die neueste Ubuntu-Version als Laufzeitumgebung
     runs-on: ubuntu-latest
-
-    # Die einzelnen Schritte des Jobs
     steps:
-      # 1. Schritt: Klone dein Repository auf den Runner
       - name: Check out repo
         uses: actions/checkout@v3
 
-      # 2. Schritt: Rufe den iCal-Feed ab und speichere ihn
       - name: Fetch iCal feed
         run: |
           curl -o calendar.ics 'https://gemeindekonkordia.church.tools/?q=churchcal/ical'
 
-      # 3. Schritt: Committe und pushe die neue Datei automatisch ins Repository
-      # Nutzt eine vorgefertigte Action, die das sehr einfach macht.
       - name: Commit and push if changed
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
