@@ -5,59 +5,289 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>iCal Kalender-Widget</title>
     <style>
-        :root { /* ... All die CSS-Styles von der vorherigen Antwort ... */ }
-        #ical-widget-container { width: 100%; box-sizing: border-box; }
-        #ical-calendar-widget { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f8f9fa; color: #212529; padding: 20px; max-width: 1200px; margin: 0 auto; }
-        .widget-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .widget-header h1 { font-size: 1.8em; color: #000; margin: 0; }
-        #calendar-status { padding: 20px; text-align: center; font-size: 1.1em; color: #6c757d; }
-        #calendar-grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
-        .calendar-tile { background-color: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 20px; display: flex; flex-direction: column; gap: 12px; border-left: 5px solid #007bff; }
-        .tile-title { font-size: 1.3em; font-weight: 600; color: #000; margin: 0; }
-        .tile-datetime, .tile-location { font-size: 0.95em; color: #6c757d; display: flex; align-items: center; gap: 8px; }
-        .tile-datetime svg, .tile-location svg { width: 16px; height: 16px; flex-shrink: 0; }
-        .tile-description { font-size: 0.9em; line-height: 1.5; max-height: 120px; overflow-y: auto; border-top: 1px solid #eee; padding-top: 10px; }
+        /* --- Grundlegende Styles & Typografie aus dem Vorbild --- */
+        :root {
+            --widget-bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --accent-color: #bb2232; /* Das Rot aus dem Vorbild */
+            --shadow-color: rgba(0, 0, 0, 0.15);
+            --border-radius: 15px;
+        }
+
+        #ical-widget-container, body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: var(--widget-bg);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+
+        #ical-calendar-widget {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        /* --- Titel-Styling aus dem Vorbild --- */
+        .widget-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .widget-header h1 {
+            font-size: 42px;
+            font-weight: 700;
+            color: var(--accent-color);
+            margin: 0 0 20px 0;
+            position: relative;
+        }
+
+        /* Unterstrich-Element unter dem Titel */
+        .widget-header h1::after {
+            content: '';
+            display: block;
+            width: 80px;
+            height: 4px;
+            background: var(--accent-color);
+            margin: 20px auto 0;
+            border-radius: 2px;
+        }
+
+        /* --- Grid-Layout für die Karten --- */
+        #calendar-grid {
+            display: grid;
+            justify-content: center;
+            gap: 30px;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 320px));
+        }
+
+        /* --- Neues Karten-Design ohne Bilder --- */
+        .calendar-tile {
+            position: relative;
+            height: 320px;
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 30px var(--shadow-color);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .calendar-tile:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Header der Karte: Ersetzt den früheren Bildbereich */
+        .tile-header {
+            background-color: var(--accent-color);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .tile-day {
+            font-size: 16px;
+            font-weight: 600;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .tile-date {
+            font-size: 28px;
+            font-weight: 700;
+            display: block;
+            line-height: 1.2;
+        }
+
+        /* Body der Karte: Hauptinformationen */
+        .tile-body {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+
+        .tile-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #000;
+            margin: 0 0 10px 0;
+        }
+
+        .tile-time, .tile-location {
+            font-size: 15px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .tile-time svg, .tile-location svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            fill: #888;
+        }
+
+        /* Overlay für die Beschreibung (erscheint bei Hover) */
+        .tile-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(187, 34, 50, 0.95), rgba(187, 34, 50, 0.85));
+            color: white;
+            padding: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 16px;
+            line-height: 1.5;
+            transform: translateY(100%); /* Startet außerhalb der Karte (unten) */
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .calendar-tile:hover .tile-overlay {
+            transform: translateY(0); /* Gleitet bei Hover nach oben in die Ansicht */
+        }
+
+        /* Lade- und Fehlerstatus */
+        #calendar-status {
+            text-align: center;
+            font-size: 18px;
+            color: #666;
+            padding: 40px 20px;
+        }
+        
+        /* Responsive Anpassungen */
+        @media (max-width: 768px) {
+            .widget-header h1 { font-size: 32px; }
+            #calendar-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+        }
     </style>
 </head>
 <body>
     <div id="ical-widget-container">
         <div id="ical-calendar-widget">
-            <div class="widget-header"><h1>Anstehende Termine</h1></div>
+            <div class="widget-header">
+                <h1>Anstehende Termine</h1>
+            </div>
             <div id="calendar-status"></div>
             <div id="calendar-grid"></div>
         </div>
     </div>
+    
     <script src="https://cdn.jsdelivr.net/npm/ical.js@1.5.0/build/ical.min.js"></script>
     <script>
         (function() {
-            // Konfiguration zeigt jetzt auf die lokale Datei, die von der GitHub Action erstellt wird.
             const config = {
-                icalFileUrl: 'calendar.ics', // Relative URL zur Kalenderdatei
+                icalFileUrl: 'calendar.ics',
                 weeksToShow: 4
             };
 
-            const widget = document.querySelector('#ical-calendar-widget');
-            const gridContainer = widget.querySelector('#calendar-grid');
-            const statusContainer = widget.querySelector('#calendar-status');
+            const gridContainer = document.getElementById('calendar-grid');
+            const statusContainer = document.getElementById('calendar-status');
 
-            // Der Rest des JavaScripts ist fast identisch, lädt aber aus einer direkten Datei
-            // ... (Der gesamte JavaScript-Code von der vorherigen Antwort, aber ohne Proxy-Logik und Caching, da die Datei immer aktuell ist)
+            // HILFSFUNKTIONEN FÜR DATUMSFORMATIERUNG
+            const formatDateHeader = (date) => {
+                const day = date.toLocaleDateString('de-DE', { weekday: 'long' });
+                const fullDate = date.toLocaleDateString('de-DE', { day: '2-digit', month: 'long' });
+                return `<span class="tile-day">${day}</span><span class="tile-date">${fullDate}</span>`;
+            };
 
-            function formatDateTime(startTime, endTime) { /* ... (unverändert) ... */ const optionsDate = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }; const optionsTime = { hour: '2-digit', minute: '2-digit', hour12: false }; const startDate = startTime.toJSDate(); const endDate = endTime.toJSDate(); let dateString = startDate.toLocaleDateString('de-DE', optionsDate); if (startTime.isDate) return dateString; let timeString = `${startDate.toLocaleTimeString('de-DE', optionsTime)} – ${endDate.toLocaleTimeString('de-DE', optionsTime)} Uhr`; return `${dateString} <br> ${timeString}`; }
-            function processIcalData(icalData) { /* ... (unverändert) ... */ const now = new Date(); const endDateLimit = new Date(); endDateLimit.setDate(now.getDate() + config.weeksToShow * 7); const allEvents = []; try { const jcalData = ICAL.parse(icalData); const vcalendar = new ICAL.Component(jcalData); const vevents = vcalendar.getAllSubcomponents('vevent'); vevents.forEach(vevent => { const event = new ICAL.Event(vevent); if (event.isRecurring()) { const iterator = event.iterator(); let next; while ((next = iterator.next()) && next.toJSDate() < endDateLimit) { const occ = event.getOccurrenceDetails(next); if (occ.startDate.toJSDate() >= now) allEvents.push({ summary: occ.item.summary, startDate: occ.startDate, endDate: occ.endDate, location: occ.item.location, description: occ.item.description }); } } else { const startDate = event.startDate.toJSDate(); if (startDate >= now && startDate < endDateLimit) allEvents.push({ summary: event.summary, startDate: event.startDate, endDate: event.endDate, location: event.location, description: event.description }); } }); allEvents.sort((a, b) => a.startDate.toJSDate() - b.startDate.toJSDate()); return allEvents; } catch (e) { console.error("Fehler beim Parsen der iCal-Daten:", e); statusContainer.textContent = "Fehler: Die Kalenderdaten konnten nicht verarbeitet werden."; return []; } }
-            function renderCalendar(events) { /* ... (unverändert) ... */ gridContainer.innerHTML = ''; statusContainer.textContent = events.length === 0 ? `Keine Termine in den nächsten ${config.weeksToShow} Wochen.` : ''; events.forEach(event => { const tile = document.createElement('div'); tile.className = 'calendar-tile'; const locationHTML = event.location ? `<div class="tile-location"><svg ...><span>${event.location}</span></div>` : ''; const descriptionHTML = event.description ? `<div class="tile-description"><p>${event.description.replace(/\n/g, '<br>')}</p></div>` : ''; tile.innerHTML = `<h2 class="tile-title">${event.summary}</h2><div class="tile-datetime"><svg ...><span>${formatDateTime(event.startDate, event.endDate)}</span></div>${locationHTML}${descriptionHTML}`; gridContainer.appendChild(tile); }); }
+            const formatTime = (start, end, isAllDay) => {
+                if (isAllDay) return 'Ganztägig';
+                const options = { hour: '2-digit', minute: '2-digit', hour12: false };
+                return `${start.toLocaleTimeString('de-DE', options)} – ${end.toLocaleTimeString('de-DE', options)} Uhr`;
+            };
 
+            const processIcalData = (icalData) => {
+                const now = new Date();
+                const endDateLimit = new Date();
+                endDateLimit.setDate(now.getDate() + config.weeksToShow * 7);
+                const allEvents = [];
+                try {
+                    const jcalData = ICAL.parse(icalData);
+                    const vcalendar = new ICAL.Component(jcalData);
+                    const vevents = vcalendar.getAllSubcomponents('vevent');
+                    vevents.forEach(vevent => {
+                        const event = new ICAL.Event(vevent);
+                        if (event.isRecurring()) {
+                            const iterator = event.iterator(); let next;
+                            while ((next = iterator.next()) && next.toJSDate() < endDateLimit) {
+                                const occ = event.getOccurrenceDetails(next);
+                                if (occ.startDate.toJSDate() >= now) allEvents.push(occ);
+                            }
+                        } else {
+                            if (event.startDate.toJSDate() >= now && event.startDate.toJSDate() < endDateLimit) allEvents.push(event);
+                        }
+                    });
+                    allEvents.sort((a, b) => a.startDate.toJSDate() - b.startDate.toJSDate());
+                    return allEvents;
+                } catch (e) {
+                    console.error("Fehler beim Parsen der iCal-Daten:", e);
+                    statusContainer.textContent = "Fehler: Die Kalenderdaten konnten nicht verarbeitet werden.";
+                    return [];
+                }
+            };
+
+            const renderCalendar = (events) => {
+                gridContainer.innerHTML = '';
+                statusContainer.style.display = 'none';
+
+                if (events.length === 0) {
+                    statusContainer.textContent = `Keine anstehenden Termine in den nächsten ${config.weeksToShow} Wochen gefunden.`;
+                    statusContainer.style.display = 'block';
+                    return;
+                }
+
+                events.forEach(event => {
+                    const tile = document.createElement('div');
+                    tile.className = 'calendar-tile';
+
+                    const item = event.item || event; // Für wiederkehrende und einmalige Events
+                    const startDate = event.startDate.toJSDate();
+                    const endDate = event.endDate.toJSDate();
+
+                    const timeHTML = `<div class="tile-time"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" fill-opacity=".54"/></svg><span>${formatTime(startDate, endDate, event.startDate.isDate)}</span></div>`;
+                    const locationHTML = item.location ? `<div class="tile-location"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5-2.5z"/></svg><span>${item.location}</span></div>` : '';
+                    const overlayHTML = item.description ? `<div class="tile-overlay">${item.description.replace(/\n/g, '<br>')}</div>` : '';
+
+                    tile.innerHTML = `
+                        <div class="tile-header">${formatDateHeader(startDate)}</div>
+                        <div class="tile-body">
+                            <h2 class="tile-title">${item.summary}</h2>
+                            ${timeHTML}
+                            ${locationHTML}
+                        </div>
+                        ${overlayHTML}
+                    `;
+                    gridContainer.appendChild(tile);
+                });
+            };
+            
             async function initCalendar() {
                 statusContainer.textContent = 'Lade Termine...';
+                statusContainer.style.display = 'block';
                 try {
-                    const response = await fetch(config.icalFileUrl);
+                    // Caching im Browser deaktivieren, damit immer die neueste Version von GitHub geladen wird
+                    const response = await fetch(config.icalFileUrl, { cache: 'no-store' });
                     if (!response.ok) throw new Error(`Kalenderdatei nicht gefunden: ${response.status}`);
                     const icalData = await response.text();
                     const events = processIcalData(icalData);
                     renderCalendar(events);
                 } catch (error) {
                     console.error('Fehler:', error);
-                    statusContainer.textContent = 'Fehler: Termine konnten nicht geladen werden. Warten auf die erste automatische Aktualisierung...';
+                    statusContainer.textContent = 'Fehler: Termine konnten nicht geladen werden.';
                 }
             }
             initCalendar();
