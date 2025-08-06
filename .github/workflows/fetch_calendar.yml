@@ -16,6 +16,11 @@ jobs:
       - name: Check out repo
         uses: actions/checkout@v3
 
+      # --- HIER IST DER WICHTIGE FIX ---
+      # Synchronisiert den lokalen Stand mit dem Online-Repository, bevor Änderungen gemacht werden.
+      - name: Pull latest changes
+        run: git pull
+
       # Ruft jeden Kalender einzeln mit dem korrekten Link ab
       - name: Fetch Calendar Feeds
         run: |
@@ -25,6 +30,7 @@ jobs:
           curl -o jugend.ics 'https://gemeindekonkordia.church.tools/?q=churchcal/ical&security=JKyPzzmVEYVaRac65whlhxEty8RLN3vz&id=3'
           curl -o sonstige.ics 'https://gemeindekonkordia.church.tools/?q=churchcal/ical&security=HpOp2CtkDW4MgLLFVsDfTeCuSCw3GpkG&id=1'
 
+      # Speichert die Änderungen
       - name: Commit and push if changed
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
