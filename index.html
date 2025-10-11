@@ -35,9 +35,32 @@
         .card-title { font-size: 18px; font-weight: 700; line-height: 1.3; text-align: center; color: var(--text-color); margin-bottom: 15px; }
         .card-time { font-size: 14px; color: var(--subtle-text); text-align: center; }
         
-        /* Details in der Karte */
-        .card-details { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-out, padding 0.4s ease-out; padding: 0 20px; background-color: #f9f9f9; border-top: 0px solid var(--border-color); }
-        .event-card.active .card-details { max-height: 400px; padding: 20px; border-top: 1px solid var(--border-color); }
+        /* Overlay/Modal */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.6); z-index: 1000; justify-content: center; align-items: center; padding: 20px; backdrop-filter: blur(4px); animation: fadeIn 0.3s ease; }
+        .modal-overlay.active { display: flex; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        .modal-content { background: white; border-radius: 12px; max-width: 600px; width: 100%; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); animation: slideUp 0.3s ease; position: relative; }
+        
+        /* Modal Header */
+        .modal-header { padding: 25px 30px; border-bottom: 2px solid var(--border-color); position: sticky; top: 0; background: white; z-index: 10; }
+        .modal-date-large { font-size: 48px; font-weight: 700; color: var(--text-color); line-height: 1; }
+        .modal-weekday { font-size: 18px; color: var(--subtle-text); font-weight: 600; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px; }
+        .modal-title { font-size: 24px; font-weight: 700; margin-top: 15px; color: var(--text-color); line-height: 1.3; }
+        
+        /* Close Button */
+        .modal-close { position: absolute; top: 20px; right: 20px; width: 36px; height: 36px; border: none; background: var(--border-color); border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; font-size: 20px; color: var(--text-color); }
+        .modal-close:hover { background: var(--accent-color); color: white; transform: rotate(90deg); }
+        
+        /* Modal Body */
+        .modal-body { padding: 30px; }
+        .modal-detail-item { display: flex; align-items: flex-start; margin-bottom: 20px; font-size: 16px; line-height: 1.6; }
+        .modal-detail-item svg { width: 24px; height: 24px; margin-right: 15px; fill: var(--accent-color); flex-shrink: 0; margin-top: 2px; }
+        .modal-detail-item strong { display: block; font-weight: 600; margin-bottom: 5px; color: var(--text-color); }
+        .modal-link { display: inline-block; background-color: var(--accent-color); color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; transition: all 0.2s ease; margin-top: 10px; }
+        .modal-link:hover { background-color: #a01f2b; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(187, 34, 50, 0.3); }
         
         /* Normale Listen-Ansicht */
         .month-header { background-color: var(--header-bg); padding: 8px 20px; font-size: 14px; font-weight: 600; color: var(--subtle-text); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border-color); border-top: 1px solid var(--border-color); margin-top: -1px; }
@@ -69,6 +92,11 @@
             .event-card { max-width: 400px; min-height: 280px; }
             .card-day { font-size: 48px; }
             .card-title { font-size: 17px; }
+            .modal-content { max-width: 95%; max-height: 90vh; }
+            .modal-header { padding: 20px; }
+            .modal-date-large { font-size: 38px; }
+            .modal-title { font-size: 20px; }
+            .modal-body { padding: 20px; }
         }
         
         @media (max-width: 480px) {
@@ -78,6 +106,10 @@
             .card-month { font-size: 14px; }
             .card-title { font-size: 16px; }
             .section-header { font-size: 14px; padding: 10px 15px; }
+            .modal-date-large { font-size: 32px; }
+            .modal-weekday { font-size: 16px; }
+            .modal-title { font-size: 18px; }
+            .modal-detail-item { font-size: 15px; }
         }
     </style>
 </head>
@@ -87,6 +119,17 @@
             <div id="next-week-container"></div>
             <div id="calendar-list"></div>
             <div id="calendar-status"></div>
+        </div>
+    </div>
+    
+    <!-- Modal Overlay -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal-content" id="modal-content">
+            <div class="modal-header">
+                <button class="modal-close" id="modal-close">×</button>
+                <div id="modal-header-content"></div>
+            </div>
+            <div class="modal-body" id="modal-body-content"></div>
         </div>
     </div>
     
@@ -105,6 +148,104 @@
             const nextWeekContainer = document.getElementById('next-week-container');
             const listContainer = document.getElementById('calendar-list');
             const statusContainer = document.getElementById('calendar-status');
+            const modalOverlay = document.getElementById('modal-overlay');
+            const modalClose = document.getElementById('modal-close');
+            const modalHeaderContent = document.getElementById('modal-header-content');
+            const modalBodyContent = document.getElementById('modal-body-content');
+
+            // Modal öffnen/schließen
+            const openModal = (event) => {
+                const startDate = event.startDate.toJSDate();
+                const item = event.item || event;
+                const endDate = event.endDate.toJSDate();
+                const color = event.color;
+                
+                // Header
+                const weekday = startDate.toLocaleDateString('de-DE', { weekday: 'long' });
+                const day = startDate.getDate();
+                const monthYear = startDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+                
+                modalHeaderContent.innerHTML = `
+                    <div class="modal-weekday" style="color: ${color};">${weekday}</div>
+                    <div class="modal-date-large">${day}. ${monthYear}</div>
+                    <div class="modal-title">${item.summary}</div>
+                `;
+                
+                // Body
+                let bodyHTML = '';
+                
+                if (!event.startDate.isDate) {
+                    const options = { hour: '2-digit', minute: '2-digit' };
+                    bodyHTML += `
+                        <div class="modal-detail-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+                            <div>
+                                <strong>Uhrzeit</strong>
+                                ${startDate.toLocaleTimeString('de-DE', options)} - ${endDate.toLocaleTimeString('de-DE', options)} Uhr
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (item.location) {
+                    bodyHTML += `
+                        <div class="modal-detail-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5-2.5z"/></svg>
+                            <div>
+                                <strong>Ort</strong>
+                                ${item.location}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (item.description) {
+                    bodyHTML += `
+                        <div class="modal-detail-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM4 6h16v2H4V6zm16 12H4V10h16v8z"/></svg>
+                            <div>
+                                <strong>Beschreibung</strong>
+                                ${item.description.replace(/\n/g, '<br>')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (item.url) {
+                    bodyHTML += `
+                        <div class="modal-detail-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>
+                            <div>
+                                <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="modal-link">Mehr Infos / Anmeldung</a>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (!bodyHTML) {
+                    bodyHTML = '<div class="modal-detail-item">Keine weiteren Informationen vorhanden.</div>';
+                }
+                
+                modalBodyContent.innerHTML = bodyHTML;
+                modalOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            };
+            
+            const closeModal = () => {
+                modalOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            };
+            
+            modalClose.addEventListener('click', closeModal);
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) closeModal();
+            });
+            
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && modalOverlay.classList.contains('active')) {
+                    closeModal();
+                }
+            });
 
             const processIcalData = (icalData, color) => { const now = new Date(); const endDateLimit = new Date(); endDateLimit.setDate(now.getDate() + config.weeksToShow * 7); const events = []; try { const jcalData = ICAL.parse(icalData); const vcalendar = new ICAL.Component(jcalData); const vevents = vcalendar.getAllSubcomponents('vevent'); vevents.forEach(vevent => { const event = new ICAL.Event(vevent); const addEvent = (e) => { e.color = color; events.push(e); }; if (event.isRecurring()) { const iterator = event.iterator(); let next; while ((next = iterator.next()) && next.toJSDate() < endDateLimit) { const occ = event.getOccurrenceDetails(next); if (occ.startDate.toJSDate() >= now) addEvent(occ); } } else { if (event.startDate.toJSDate() >= now && event.startDate.toJSDate() < endDateLimit) addEvent(event); } }); } catch (e) { console.error(`Fehler beim Parsen von Kalenderdaten:`, e); } return events; };
 
@@ -125,7 +266,6 @@
                 events.forEach(event => {
                     const startDate = event.startDate.toJSDate();
                     const item = event.item || event;
-                    const endDate = event.endDate.toJSDate();
                     const color = event.color;
                     
                     const card = document.createElement('div');
@@ -151,29 +291,11 @@
                     
                     cardBody.innerHTML = `<div class="card-title">${item.summary}</div>${timeHTML}`;
                     
-                    let detailsHTML = '';
-                    if (item.location) {
-                        detailsHTML += `<div class="detail-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5-2.5z"/></svg><div>${item.location}</div></div>`;
-                    }
-                    if (item.description) {
-                        detailsHTML += `<div class="detail-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM4 6h16v2H4V6zm16 12H4V10h16v8z"/></svg><div>${item.description.replace(/\n/g, '<br>')}</div></div>`;
-                    }
-                    if (item.url) {
-                        detailsHTML += `<div class="detail-item detail-link"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg><a href="${item.url}" target="_blank" rel="noopener noreferrer">Mehr Infos</a></div>`;
-                    }
-                    
-                    const cardDetails = document.createElement('div');
-                    cardDetails.className = 'card-details';
-                    cardDetails.innerHTML = detailsHTML || '<div class="detail-item">Keine weiteren Informationen</div>';
-                    
                     card.appendChild(cardHeader);
                     card.appendChild(cardDate);
                     card.appendChild(cardBody);
-                    card.appendChild(cardDetails);
                     
-                    card.addEventListener('click', () => {
-                        card.classList.toggle('active');
-                    });
+                    card.addEventListener('click', () => openModal(event));
                     
                     grid.appendChild(card);
                 });
@@ -209,10 +331,8 @@
                     }
                 });
                 
-                // Render Karten für nächste 7 Tage
                 renderNextWeekCards(next7Days);
                 
-                // Render normale Liste für spätere Termine
                 if (laterEvents.length > 0) {
                     const laterHeader = document.createElement('div');
                     laterHeader.className = 'section-header';
